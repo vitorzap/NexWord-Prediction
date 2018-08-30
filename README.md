@@ -1,5 +1,5 @@
-# NexWord-Prediction
-Coursera  Data Science Capstone - Final Project - Next Word Prediction
+# Next word's prediction
+##Coursera  Data Science Capstone - Final Project - Next Word Prediction
 
 Este repositório contem os arquivos do projeto final do curso de data science da Coursera.
 O objetivo deste aplicativo Shiny é dado um texto, prever a próxima palavra baseado em n-grams préviamente criados.
