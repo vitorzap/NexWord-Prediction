@@ -1,18 +1,12 @@
 # Next word's prediction
 ### Coursera  Data Science Capstone - Final Project - Next Word Prediction
 
-Este repositório contem os arquivos do projeto final do curso de data science da Coursera.
-O objetivo deste aplicativo Shiny é dado um texto, prever a próxima palavra baseado em n-grams préviamente criados.
-Os textos usados como base para a criação destes n-grams foram baixados de The data from "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
-Os N-grams foram gerados  utilizando-se o pacote "tm".
-O  aplicativo utiliza data tables contendo 5-grams a 1-grams e os scrips R utilizados para gerar estas data tables esta incluidos no diretório ngramGeneration.
-Inicialmente utilizei um algoritmo simples de match do texto entrado com a base de dados de dados de n-grams  tentando match desde 5-grams até 2-gram para encontrar a proxima palavra, depois  implementei um algoritmo Katz BackOff Model para obter probabilidades das proximas palavras  (basei-me nas ideias descritas em 
-- https://thachtranerc.wordpress.com/2016/04/12/katzs-backoff-model-implementation-in-r/ e 
-- https://en.wikipedia.org/wiki/Katz%27s_back-off_model
+This repository contains the archives of the final design of the Coursera data science course. The purpose of this Shiny application is given a text, predict the next word based on n-grams previously created. The texts used as the basis for the creation of these n-grams were downloaded from The data from "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip" N-grams were generated using the package "tm". The application uses data tables containing 5-grams to 1-grams and the R scripts used to generate these data tables are included in the ngramGeneration directory. Initially I used a simple text match algorithm entered with the n-grams data database trying to match from 5-grams to 2-gram to find the next word, then implemented a Katz BackOff Model algorithm to get probabilities of the next words (based on the ideas described in
 
-e na implementação contida em:
--https://github.com/ThachNgocTran/Katz BackOff ModeImplementationInR
+https://thachtranerc.wordpress.com/2016/04/12/katzs-backoff-model-implementation-in-r/ e
+https://en.wikipedia.org/wiki/Katz%27s_back-off_model
+and the implementation contained in: -https: //github.com/ThachNgocTran/Katz BackOff ModeImplementationInR
 
-porém a utlização deste algoritmo para o propósito do aplicativo não apresentou ganhos de precisão  significativos  mas aumentou o tempo de resposta, assim voltei a ideia mais simples.
+but the use of this algorithm for the purpose of the application did not present significant gains of precision but increased the response time, so I came back to the simpler idea.
 
-A minha implementação do Katz BackOff Model esta cotida no diretório KatzBackOff.
+My Katz BackOff Model implementation is contained in the KatzBackOff directory.
