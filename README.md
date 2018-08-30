@@ -15,4 +15,4 @@ e na implementação contida em:
 
 porém a utlização deste algoritmo para o propósito do aplicativo não apresentou ganhos de precisão  significativos  mas aumentou o tempo de resposta, assim voltei a ideia mais simples.
 
-A minha implementação do Katz BackOff Mode esta cotida no diretório Katz BackOff Model.
+A minha implementação do Katz BackOff Model esta cotida no diretório KatzBackOff.
