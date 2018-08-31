@@ -11,4 +11,7 @@ and the implementation contained in: -https: //github.com/ThachNgocTran/Katz Bac
 
 but the use of this algorithm for the purpose of the application did not present significant gains of precision but increased the response time, so I came back to the simpler idea.
 
+
+The scripts for creating n-grams are in sss
+
 My Katz BackOff Model implementation is contained in the KatzBackOff directory.
