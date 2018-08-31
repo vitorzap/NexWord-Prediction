@@ -1,0 +1,209 @@
+---
+title: 'Milestone Report: Exploratory Data Analysis and Modeling'
+author: "Vitor Zamprogno Amancio Pereira"
+date: "7/23/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+setwd("~/Documents/DataAnalyst/CouseraCourse/10-DataScienceCapstone")
+```
+
+## Summary
+
+
+The goal of this project is obtain the data from the e file Coursera-SwiftKey.zip, which is a bunch of text documents, load them , make some exploratory analisys and modeling to get a predictive text model to be used in future product.
+This large databases of texts comprising contaisn texts in English, German, Russian and Finnish but for this project only the english will be used.
+
+## Exploratory Data Analysis
+
+
+### Getting the data
+
+The data from "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip" was Downloaded and Decompressed
+Below the diretory content after dowmnloading asn decompressing SwiftKey.zip
+```{r echo=FALSE}
+dirdownload=paste0(getwd(),"/data")
+if (!file.exists(paste0(dirdownload,"/SwiftKey.zip"))) {
+  download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip","SwiftKey.zip", method="curl")
+}
+if (!file.exists(paste0(dirdownload,"/final"))) {
+  unzip("SwiftKey.zip")
+}
+list.files(dirdownload)
+```
+
+### File content
+SwiftKey.zip file contains a directory strucuture that begins with the directory "final", and one  subdirectory for the  languages English, German, Russian and Finnish, each one with the text files in this languages
+```{r echo=FALSE}
+dirdata=paste0(dirdownload,"/final")
+list.files(dirdata,recursive=TRUE,include.dirs=TRUE)
+```
+
+In each language directory there is a file for tweets, blogs and news collections, in this project only the  English text files will be used.
+```{r echo=TRUE}
+dirFullTexts=paste0(dirdata,"/en_US")
+
+if (!file.exists("filesEspec.df")) {
+  filename.list = list.files(dirFullTexts)
+  filesize.list= rep(0,length(filename.list))
+  linescount.list= rep(0,length(filename.list))
+  wordcount.list= rep(0,length(filename.list))
+  for (i in 1:length(filename.list)) {
+    filename = paste(dirFullTexts,filename.list[[i]],sep="/")
+    con <- file(filename, "r")
+    filelines.list=readLines(con)
+    filesize.list[i] = file.info(filename)[[1]]
+    linescount.list[i] = length(filelines.list)
+    wordcount.list[i] = sum(sapply(strsplit(filelines.list, "\\s+"), length))
+    close(con)
+  }
+  df=data.frame(FileName=filename.list,
+                FileSize=filesize.list,
+                No.Lines=linescount.list,
+                No.words=wordcount.list)
+  save(df,file="filesEspec.df")
+  rm(filelines.list)
+} else {
+  load(file="filesEspec.df")
+}
+kable(df, caption="English/US text files. A basic summary of information.", table.attr = "width='70%' border=1 align='center' ")
+```
+
+### Sampling
+When we tried to work with the full version of the data, the processing time was very long and often the R simply froze, so for the modeling we will use a sampling of these original files (10%).
+```{r echo=TRUE}
+if (!file.exists("filesEspecS.df")) {
+  if (!dir.exists(paste0(getwd(),"/sample"))) {
+  dir.create(paste0(getwd(),"/sample"))
+  }
+  if (!dir.exists(paste0(getwd(),"/sample","/final"))) {
+    dir.create(paste0(getwd(),"/sample","/final"))
+  }
+  dirsample=paste0(getwd(),"/sample/final/en_US")
+  if (!dir.exists(dirsample)) {
+    dir.create(dirsample)
+  }
+  
+  fsamplesize.list= rep(0,length(filename.list))
+  set.seed(234)
+  for (i in 1:length(df$No.Lines)) {
+    inputfilename = paste(dirFullTexts,df$FileName[i],sep="/")
+    con <- file(inputfilename, "r")
+    filelinesRead.list=readLines(con)
+    close(con)
+    twentyPerCent = ceiling(df$No.Lines[i] / 10)
+    toWrite = sample(1:df$No.Lines[i], twentyPerCent, replace=FALSE)
+    filelinesWrite.list = filelinesRead.list[toWrite]
+    outputfilename = paste(dirsample,df$FileName[i],sep="/")
+    con <- file(outputfilename, "w")
+    writeLines(filelinesWrite.list,con,sep = "\n")
+    close(con)
+    fsamplesize.list[i] = file.info(outputfilename)[[1]]
+  }
+  dfs=data.frame(File.Name=df$FileName,
+                Original.Size=round(df$FileSize/1000/1000,1),
+                Sample.Size=round(fsamplesize.list/1000/1000,1))
+  save(dfs,file="filesEspecS.df")
+} else {
+  dirsample=paste0(getwd(),"/sample/final/en_US")
+  load(file="filesEspecS.df")
+} 
+kable(dfs, caption="Files sampling size information", table.attr = "width='70%' border=1 align='center' ")
+
+```
+
+### Loading a corpus
+
+To explore and model the text files we will use the package "tm" that provide a framework of text mininig and "rweka" (R interface for Weka, which is a collection of machine learning algorithms for data mining in Java)
+```{r  include=FALSE}
+options(java.parameters = "-Xmx2048m")
+library(rJava)
+library(tm)
+library("RWeka")
+```
+
+The first step is load our text data into a "corpus", the main structure for managing documents in tm.
+```{r  echo=TRUE}
+corpus <- VCorpus(DirSource(dirsample))
+print(paste0("Corpus: ", round(object.size(corpus)/1000000,1), " Mb"))
+```
+
+### Cleanig
+Now through the transformations provided by the tm package we'll cleaning of the documents, removing extra blank space, punctuation, stopwords and converting everything to lower case
+```{r  echo=TRUE}
+# Remove punctuation - replace punctuation marks with " "
+corpus <- tm_map(corpus , removePunctuation)
+#Transform to lower case 
+corpus <- tm_map(corpus,content_transformer(tolower))
+#Strip digits 
+corpus <- tm_map(corpus, removeNumbers)
+#remove stopwords using the standard list in tm
+corpus <- tm_map(corpus, removeWords, stopwords("english"))
+#Strip whitespace 
+corpus <- tm_map(corpus, stripWhitespace)
+```
+
+### Getting the each word's occurrence count  in the corpus
+```{r  echo=TRUE}
+dtm <- DocumentTermMatrix(corpus)
+wordFreq <- colSums(as.matrix(dtm))
+ord = order(wordFreq,decreasing=TRUE)
+temp=wordFreq[head(ord,n=15)]
+dfplot=data.frame(word=factor(names(temp)),count=temp)
+rownames(dfplot)= c()
+dfplott=t(dfplot)
+colnames(dfplott)=c("1º","2º","3º","4º","5º","6º","7º","8º","9º","10º","11º","12º","13º","14º","15º")
+kable(dfplott, caption="The 15 most frequent words", table.attr = "width='100%' border=1 align='center' ")
+g=ggplot(dfplot,aes(x=reorder(word, count),y=count))
+g=g+geom_bar(stat='identity',color='blue') 
+g=g+xlab('Words')+ylab('Count')+ ggtitle('The 15 most frequent words') + coord_flip()
+g
+```
+
+####N-gram
+A n-gram is a combination of n items, in the present case words, so a 2-gram is a combination of 2 words, a 3-gram combination of 3 words and so on. N-gram are important because they are used in the prediction of the next word based on the previous ones and the frequency of these combinations
+
+### Counting bi-grams (2-gram)
+```{r  echo=TRUE}
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+dtm2 <- DocumentTermMatrix(corpus, control = list(tokenize = BigramTokenizer))
+wordFreq <- colSums(as.matrix(dtm2))
+ord = order(wordFreq,decreasing=TRUE)
+temp=wordFreq[head(ord,n=15)]
+dfplot=data.frame(bigram=factor(names(temp)),count=temp)
+rownames(dfplot)= c()
+dfplott=t(dfplot)
+colnames(dfplott)=c("1º","2º","3º","4º","5º","6º","7º","8º","9º","10º","11º","12º","13º","14º","15º")
+kable(dfplott, caption="The 15 most frequent bi-gram", table.attr = "width='100%' border=1 align='center' ")
+g=ggplot(dfplot,aes(x=reorder(bigram, count),y=count))
+g=g+geom_bar(stat='identity',color='blue') 
+g=g+xlab('bi-grams')+ylab('Count')+ ggtitle('The 15 most frequent bi-grams') + coord_flip()
+g
+```
+
+### Counting tri-grams (32-gram)
+```{r  echo=TRUE}
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
+dtm3 <- DocumentTermMatrix(corpus, control = list(tokenize = BigramTokenizer))
+wordFreq <- colSums(as.matrix(dtm3))
+ord = order(wordFreq,decreasing=TRUE)
+temp=wordFreq[head(ord,n=15)]
+dfplot=data.frame(trigram=factor(names(temp)),count=temp)
+rownames(dfplot)= c()
+dfplott=t(dfplot)
+colnames(dfplott)=c("1º","2º","3º","4º","5º","6º","7º","8º","9º","10º","11º","12º","13º","14º","15º")
+kable(dfplott, caption="The 15 most frequent tri-gram", table.attr = "width='100%' border=1 align='center' ")
+g=ggplot(dfplot,aes(x=reorder(trigram, count),y=count))
+g=g+geom_bar(stat='identity',color='blue') 
+g=g+xlab('tri-grams')+ylab('Count')+ ggtitle('The 15 most frequent tri-grams') + coord_flip()
+g
+```
+
+## Next steps
+
+The next steps will be to use the  bi-grams and tri-grams utlization frequency , to create a predictive model of words.
